@@ -40,7 +40,7 @@ os.system("rm " + DATA_FILE_NAME)
 
 average_time = sum(TIME_TAKEN)/len(TIME_TAKEN)
 print("Average time:", average_time)
-print("Average bandwidth:", FILE_SIZE / average_time, "MB/s")
+print("Average bandwidth:", (FILE_SIZE / average_time)*1000, "MB/s")
 
 results = {}
 results["config"] = CONFIG
