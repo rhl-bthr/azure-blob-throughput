@@ -17,3 +17,7 @@ python3 main.py <config_name>
 ```
 Results are stored in `results/`.
 Configurable parameters include `NUM_ITERS`, `FILE_SIZE`, `DATA_FILE_NAME`, `CONFIG`
+
+## Experiments
+To run multiple processes on different cores, use
+`taskset -c <core-number> python3 main.py <config-name>`

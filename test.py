@@ -4,7 +4,7 @@ import os
 import sys
 import json
 
-NUM_ITERS = 5 # Number of iterations to run for this experiment
+NUM_ITERS = 20 # Number of iterations to run for this experiment
 FILE_SIZE = 1024 # File size to send in each iteration (in MB)
 DATA_FILE_NAME = "data-file" # Name of the temporary file that gets created to send
 CONFIG = "default" # Result 
