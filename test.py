@@ -21,9 +21,11 @@ BLOB_NAME = "<BLOB_NAME>"
 def append_files_to_blob():
     service = AppendBlobService(account_name=STORAGE_ACCOUNT_NAME, 
             account_key=STORAGE_ACCOUNT_KEY)
-    service.append_blob_from_path(container_name=CONTAINER_NAME, blob_name=BLOB_NAME, file_path = DATA_FILE_NAME)
-
-
+    try:
+        service.append_blob_from_path(container_name=CONTAINER_NAME, blob_name=BLOB_NAME, file_path = DATA_FILE_NAME)
+    except:
+        service.create_blob(container_name=CONTAINER_NAME, blob_name=BLOB_NAME)
+        service.append_blob_from_path(container_name=CONTAINER_NAME, blob_name=BLOB_NAME, file_path = DATA_FILE_NAME)
 
 os.system("head -c " + str(FILE_SIZE) + "M </dev/urandom > " + DATA_FILE_NAME)
 for i in range(NUM_ITERS):
