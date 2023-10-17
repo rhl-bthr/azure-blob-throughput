@@ -20,4 +20,12 @@ Configurable parameters include `NUM_ITERS`, `FILE_SIZE`, `DATA_FILE_NAME`, `CON
 
 ## Experiments
 To run multiple processes on different cores, use
-`taskset -c <core-number> python3 main.py <config-name>`
+```
+num_threads=5 # can be varied
+x=0
+while [ $x -lt $num_threads ]
+do
+    taskset -c $x python3 test.py --temp_file_name=data-file-$x --experiment_name=$num_threads-thread-$x &
+    x=$(( $x + 1 ))
+done
+```
