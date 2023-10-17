@@ -1,16 +1,10 @@
 from azure.storage.blob import AppendBlobService
+import argparse
 from datetime import datetime
 import os
 import sys
 import json
 
-NUM_ITERS = 20 # Number of iterations to run for this experiment
-FILE_SIZE = 1024 # File size to send in each iteration (in MB)
-DATA_FILE_NAME = "data-file" # Name of the temporary file that gets created to send
-CONFIG = "default" # Result 
-
-if len(sys.argv) > 1:
-    CONFIG = sys.argv[1]
 TIME_TAKEN = []
 
 STORAGE_ACCOUNT_NAME = "<STORAGE_ACCOUNT_NAME>"
@@ -18,34 +12,49 @@ STORAGE_ACCOUNT_KEY = "<STORAGE_ACCOUNT_KEY>"
 CONTAINER_NAME = "<CONTAINER_NAME>"
 BLOB_NAME = "<BLOB_NAME>"
 
-def append_files_to_blob():
-    service = AppendBlobService(account_name=STORAGE_ACCOUNT_NAME, 
-            account_key=STORAGE_ACCOUNT_KEY)
-    try:
-        service.append_blob_from_path(container_name=CONTAINER_NAME, blob_name=BLOB_NAME, file_path = DATA_FILE_NAME)
-    except:
-        service.create_blob(container_name=CONTAINER_NAME, blob_name=BLOB_NAME)
-        service.append_blob_from_path(container_name=CONTAINER_NAME, blob_name=BLOB_NAME, file_path = DATA_FILE_NAME)
 
-os.system("head -c " + str(FILE_SIZE) + "M </dev/urandom > " + DATA_FILE_NAME)
-for i in range(NUM_ITERS):
+
+parser = argparse.ArgumentParser(description='Measuring Azure Blob write Throughput')
+
+parser.add_argument('--iters', '-i', type=int, help='Number of iterations to run for this experiment', default = 20)
+parser.add_argument('--data_size', '-d', type=int, help='Data size to be sent in each experiment (in MB)', default = 1024)
+parser.add_argument('--chunk_size', '-c', type=int, help='Chunk size to sent in each request (in MB)', default = 4)
+parser.add_argument('--temp_file_name', '-t', type=str, help='Name of the temporary file to be sent', default = "data-file")
+parser.add_argument('--experiment_name', '-e', type=str, help='Experiment configuration name', default = "default")
+
+args = parser.parse_args()
+
+os.system("head -c " + str(args.chunk_size) + "M </dev/urandom > " + args.temp_file_name)
+file_content = open(args.temp_file_name, "rb").read()
+
+service = AppendBlobService(account_name=STORAGE_ACCOUNT_NAME, 
+            account_key=STORAGE_ACCOUNT_KEY)
+try:
+    service.create_blob(container_name=CONTAINER_NAME, blob_name=BLOB_NAME, if_none_match="*")
+except:
+    pass
+inner_iters = int(args.data_size/args.chunk_size)
+
+for i in range(args.iters):
     start_time = datetime.now()
-    append_files_to_blob()
+    for i in range(inner_iters):
+        service.append_block(container_name=CONTAINER_NAME, blob_name=BLOB_NAME, block = file_content)
     end_time = datetime.now()
 
     time_diff = int((end_time - start_time).total_seconds() * 1000)
-    print("Iter", i, "time taken:", time_diff)
     TIME_TAKEN.append(time_diff)
-os.system("rm " + DATA_FILE_NAME)
+os.system("rm " + args.temp_file_name)
 
 average_time = sum(TIME_TAKEN)/len(TIME_TAKEN)
-print("Average time:", average_time)
-print("Average bandwidth:", (FILE_SIZE / average_time)*1000, "MB/s")
+throughput = (args.data_size / average_time)*1000
+print("Average bandwidth:", throughput, "MB/s")
 
 results = {}
-results["config"] = CONFIG
+results["config"] = args.experiment_name
 results["times"] = TIME_TAKEN
-results["size"] = FILE_SIZE
-results["iters"] = NUM_ITERS
+results["data_size"] = args.data_size
+results["chunk_size"] = args.chunk_size
+results["iters"] = args.iters
 results["average"] = average_time
-json.dump(results, open("results/" + CONFIG + ".json", "w"), indent = 4)
+results["throughput"] = throughput
+json.dump(results, open("results/" + args.experiment_name + ".json", "w"), indent = 4)
